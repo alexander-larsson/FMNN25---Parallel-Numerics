@@ -1,4 +1,4 @@
-# FMNN25---Parallel-Numerics
+# FMNN25 - Parallel Numerics
 
 ## How to switch virtual environments in Anaconda
 
