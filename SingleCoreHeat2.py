@@ -8,7 +8,7 @@ import numpy as np
 
 def make_A_matrix_small_room(size,side):
     """
-    size: size of room matrix
+    size: size of room matrix (scalar)
     side: the side where the Neuman condition is (L/R)
     """
     A_size = (size-1)*(size-2)
@@ -31,7 +31,25 @@ def make_A_matrix_small_room(size,side):
             bi = (size - 2) + (size-1)*i
             A[bi][bi-1] = 2
 
-
     return A
 
-print make_A_matrix_small_room(5,side="L")
+def make_A_matrix_big_room(size):
+    """
+    Parameters:
+    size: tuple on the form (m,n)
+    """
+    # indexes using m and n is probably wrong
+    m,n = size
+    A_size = (m-2)*(n-2)
+    A = np.diag(np.ones(A_size)*-4)
+    for i in xrange(1,A_size):
+        if i%(n-2):
+            A[i-1][i] = 1
+            A[i][i-1] = 1
+    for i in xrange(m-1,A_size):
+        A[i-m+1][i] = 1
+        A[i][i-m+1] = 1
+    return A
+
+#print make_A_matrix_small_room(5,side="L")
+print make_A_matrix_big_room((7,4))
