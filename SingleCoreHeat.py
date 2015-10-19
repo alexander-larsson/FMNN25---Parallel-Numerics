@@ -22,23 +22,23 @@ n_s = 4 # Size of small rooms
 R1 = np.zeros((n_s,n_s))
 
 R1[0,:] = np.ones(n_s) * normalT
-R1[-1,:] = np.ones(n_s) * normalT
+R1[-1,:] = np.ones(n_s) * windowT
 R1[:,0] = np.ones(n_s) * heaterT
 
 # This is what R1 looks like
 # [[ 40.  15.  15.  15.]
 #  [ 40.   0.   0.   0.]
 #  [ 40.   0.   0.   0.]
-#  [ 40.  15.  15.  15.]]
+#  [ 40.   5.   5.   5.]]
 
 R3 = np.zeros((n_s,n_s))
 
-R3[0,:] = np.ones(n_s) * normalT
+R3[0,:] = np.ones(n_s) * heaterT
 R3[-1,:] = np.ones(n_s) * normalT
 R3[:,-1] = np.ones(n_s) * heaterT
 
 # This is what R3 looks like
-# [[ 15.  15.  15.  40.]
+# [[ 40.  40.  40.  40.]
 #  [  0.   0.   0.  40.]
 #  [  0.   0.   0.  40.]
 #  [ 15.  15.  15.  40.]]
@@ -73,11 +73,6 @@ R2[-1,:] = np.ones(n_s) * windowT
 #  [  2.   0.   0.  15.]
 #  [  5.   5.   5.   5.]]
 
-# WIP DO NOT TOUCH THIS
-
-# Will write algorithm to convert these room matrices into equation systems
-# that we solve to get the answer
-
 def make_small_room_eq_sys(room_matrix):
     """
     Calculates A and b from a room matrix
@@ -93,19 +88,30 @@ def make_small_room_eq_sys(room_matrix):
 
     ui = 0 # Unknown index
 
+    # Magic check:
+    if room_matrix[1][0] == 0:
+        bi,bj = 1,0 # Right small room
+    else:
+        bi,bj = 1,1 # Left small room
+
+    inner_rows = rows - 2
+    inner_cols = cols - 1
+
     # This for loops puts all the ones in the matrix
-    for i in xrange(rows):
-        for j in xrange(cols):
-            if room_matrix[i][j] == 0: #Means it is an unknown
-                nearby = [(i+1,j),(i,j+1),(i-1,j),(i,j-1)]
-                for k in xrange(len(nearby)):
-                    ni,nj = nearby[k]
-                    if ni < rows and nj < cols: # Still inside matrix
-                        if room_matrix[ni][nj] == 0: # Nearby element is unknown
-                            ## Stoppa in etta i matrisen A
-                            ## Detta är sjuuuukt klurigt med indexen :D
-                        else:
-                            b[ui] -= room_matrix[ni][nj]
-                ui += 1
+    for i in xrange(bi,bi+inner_rows):
+        for j in xrange(bj,bj+inner_cols):
+            nearby = [(i+1,j),(i,j+1),(i-1,j),(i,j-1)]
+            for ni,nj in nearby:
+                if ni < rows and nj < cols: # Still inside matrix
+                    if room_matrix[ni][nj] == 0: # Nearby element is unknown
+                        A[ui][(ni-i)*inner_cols + nj - i] = 1
+                    else:
+                        b[ui] -= room_matrix[ni][nj]
+            ui += 1
 
     return A,b
+
+A,b = make_small_room_eq_sys(R1)
+
+print A
+print b
