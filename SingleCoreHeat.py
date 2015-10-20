@@ -124,7 +124,7 @@ def gamma(u_l, u_r):
     return (u_l - u_r)*inv_dx/2
 
 #Intialize big room
-inv_dx = 3
+inv_dx = 20
 
 l_middle = np.ones(inv_dx*2-1)*15
 t_middle = np.ones(inv_dx-1)*40
@@ -151,7 +151,7 @@ for i in xrange(r_small_left.size):
     r_small_left[i] = x_middle[-r_small_left.size*(i+1)]
 r_small_left = r_small_left[::-1] #Reverse array
 
-a_left = make_A_matrix_small_room(inv_dx +1, "L")
+a_left = make_A_matrix_small_room(inv_dx +1, "R")
 
 b_left = make_B_vector(l_small_left,t_small,r_small_left,b_small)
 x_left = np.linalg.solve(a_left, -b_left)
@@ -161,7 +161,7 @@ r_small_right = np.ones(inv_dx-1)*40
 l_small_right = np.ones(inv_dx-1)
 for i in xrange(r_small_right.size):
     l_small_right[i] = x_middle[l_small_right.size*(i)]
-a_right = make_A_matrix_small_room(inv_dx +1, "R")
+a_right = make_A_matrix_small_room(inv_dx +1, "L")
 b_right = make_B_vector(l_small_right,t_small,r_small_right,b_small)
 x_right = np.linalg.solve(a_left, -b_left)
 interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
@@ -186,8 +186,8 @@ for _ in xrange(1,10):
     #Update r_small_left with help from x_middle
     gamma_right = np.zeros(inv_dx-1)
     for i in xrange(gamma_right.size):
-        gamma_right[i] = gamma(x_right_old[i], temp_x[:inv_dx-1,-1][i])
-    b_right = make_B_vector(l_small_right,t_small, ((2/inv_dx)*gamma_right),b_small)
+        gamma_right[i] = gamma(temp_x[:inv_dx-1,-1][i],x_right_old[i]) # think parameters should be switched like this
+    b_right = make_B_vector(((2/inv_dx)*gamma_right),t_small, r_small_right,b_small)
     x_right = np.linalg.solve(a_right,-b_right)
 
     #Update interface_points_right with x_right
