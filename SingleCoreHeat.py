@@ -241,5 +241,7 @@ plot_matrix[inv_dx,2*inv_dx:-1] = np.ones(inv_dx)*15
 
 np.set_printoptions(precision=2)
 print plot_matrix
-plt.imshow(plot_matrix)
+heatplot = plt.imshow(plot_matrix)
+heatplot.set_cmap('hot')
+plt.colorbar()
 plt.show()
