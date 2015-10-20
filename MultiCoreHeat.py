@@ -138,7 +138,6 @@ if rank == 0:
     b = make_B_vector(left,top,right,bottom)
     x_middle = np.linalg.solve(a,-b)
     comm.Bcast(x_middle, root=0)
-comm.Barrier()
 if rank != 0:
     top = np.ones(inv_dx)*15
     bottom = np.ones(inv_dx)*15
@@ -155,7 +154,7 @@ if rank != 0:
         #Tag with zero for left
         #SEND: 
         x_old = x.reshape(inv_dx-1, inv_dx)[:,1]
-        comm.send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
+        comm.Send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
     elif rank == 2:
         for i in range(left.size):
             left[i] = x_middle[left.size*(i)]
@@ -164,7 +163,9 @@ if rank != 0:
         x = np.linalg.solve(a, -b)
         x_old = x.reshape(inv_dx-1,inv_dx)[:,1]
         #Send the interface points
-        comm.send(x.reshape(inv_dx-1, inv_dx)[:,0], dest=0, tag=2)
+        interface_points_left = x.reshape(inv_dx-1, inv_dx)[:,0]
+        print(interface_points_left)
+        comm.Send(interface_points_left, dest=0, tag=2)
 elif rank > 2:
     print("Rank ", rank, " does nothing")
     
@@ -173,8 +174,9 @@ comm.Barrier()
 for _ in range(1,10):
     #First the big room
     if rank == 0:
-        interface_points_left = comm.Recv(source="1", tag="1")
-        interface_points_right = comm.Recv(source="2", tag="1")
+        interface_points_left = np.ones([1,2])
+        comm.Recv(interface_points_left, source = 1, tag=1)
+        comm.Recv(interface_points_right, source = 2, tag=2)
         right[:interface_points_left.size] = interface_points_left
         left[-interface_points_right.size:] = interface_points_right
         b = make_B_vector(left,top,right,bottom)
@@ -188,7 +190,7 @@ for _ in range(1,10):
         for i in range(gamma.size):
             gamma[i] = gamma(x_old[i], temp[-(inv_dx-1):,0][i])
         if rank == 1: #left
-            b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)S
+            b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)
         elif rank == 2: #right
             b = make_B_vector(((2/inv_dx)*gamma_v),top, right ,bottom)
             b = make_B_vector(((2/inv_dx)*gamma_v),top, right, bottom)
