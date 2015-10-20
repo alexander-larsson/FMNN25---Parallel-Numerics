@@ -151,7 +151,7 @@ for i in xrange(r_small_left.size):
     r_small_left[i] = x_middle[-r_small_left.size*(i+1)]
 r_small_left = r_small_left[::-1] #Reverse array
 
-a_left = make_A_matrix_small_room(inv_dx +1, "L")
+a_left = make_A_matrix_small_room(inv_dx +1, "R")
 
 b_left = make_B_vector(l_small_left,t_small,r_small_left,b_small)
 x_left = np.linalg.solve(a_left, -b_left)
@@ -161,7 +161,7 @@ r_small_right = np.ones(inv_dx-1)*40
 l_small_right = np.ones(inv_dx-1)
 for i in xrange(r_small_right.size):
     l_small_right[i] = x_middle[l_small_right.size*(i)]
-a_right = make_A_matrix_small_room(inv_dx +1, "R")
+a_right = make_A_matrix_small_room(inv_dx +1, "L")
 b_right = make_B_vector(l_small_right,t_small,r_small_right,b_small)
 x_right = np.linalg.solve(a_left, -b_left)
 interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
