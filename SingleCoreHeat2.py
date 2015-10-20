@@ -46,9 +46,10 @@ def make_A_matrix_big_room(size):
         if i%(n-2):
             A[i-1][i] = 1
             A[i][i-1] = 1
-    for i in xrange(m-1,A_size):
-        A[i-m+1][i] = 1
-        A[i][i-m+1] = 1
+    for i in xrange(A_size-n+2):
+        A[i][i+n-2] = 1
+        A[i+n-2][i] = 1
+
     return A
 
 #print make_A_matrix_small_room(5,side="L")
