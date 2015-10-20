@@ -187,7 +187,7 @@ for _ in xrange(1,10):
     gamma_right = np.zeros(inv_dx-1)
     for i in xrange(gamma_right.size):
         gamma_right[i] = gamma(x_right_old[i], temp_x[:inv_dx-1,-1][i])
-    b_right = make_B_vector(l_small_right,t_small, ((2/inv_dx)*gamma_right),b_small)
+    b_right = make_B_vector(((2/inv_dx)*gamma_right),t_small, r_small_right,b_small)
     x_right = np.linalg.solve(a_right,-b_right)
 
     #Update interface_points_right with x_right

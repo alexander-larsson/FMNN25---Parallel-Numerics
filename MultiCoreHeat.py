@@ -142,7 +142,7 @@ comm.Barrier()
 if rank != 0:
     top = np.ones(inv_dx)*15
     bottom = np.ones(inv_dx)*15
-    right = np.ones(inv_dx-1)*40    
+    right = np.ones(inv_dx-1)*40
     left = np.ones(inv_dx-1)*40
     if rank == 1:
         for i in range(right.size):
@@ -153,7 +153,7 @@ if rank != 0:
         x = np.linalg.solve(a, -b)
         #interface_points_left = x_left.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
         #Tag with zero for left
-        #SEND: 
+        #SEND:
         x_old = x.reshape(inv_dx-1, inv_dx)[:,1]
         comm.send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
     elif rank == 2:
@@ -167,7 +167,7 @@ if rank != 0:
         comm.send(x.reshape(inv_dx-1, inv_dx)[:,0], dest=0, tag=2)
 elif rank > 2:
     print("Rank ", rank, " does nothing")
-    
+
 #Done, iterate
 comm.Barrier()
 for _ in range(1,10):
@@ -188,7 +188,7 @@ for _ in range(1,10):
         for i in range(gamma.size):
             gamma[i] = gamma(x_old[i], temp[-(inv_dx-1):,0][i])
         if rank == 1: #left
-            b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)S
+            b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)
         elif rank == 2: #right
             b = make_B_vector(((2/inv_dx)*gamma_v),top, right ,bottom)
             b = make_B_vector(((2/inv_dx)*gamma_v),top, right, bottom)
@@ -198,6 +198,6 @@ for _ in range(1,10):
             comm.send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
         elif rank == 2:
             comm.send(x.reshape(inv_dx-1,inv_dx)[:,0])
-            #Broadcast points        
+            #Broadcast points
 if rank == 0:
     print(x)
