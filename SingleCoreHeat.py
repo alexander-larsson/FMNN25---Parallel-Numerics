@@ -124,7 +124,7 @@ def gamma(u_l, u_r):
     return (u_l - u_r)*inv_dx/2
 
 #Intialize big room
-inv_dx = 3
+inv_dx = 20
 
 l_middle = np.ones(inv_dx*2-1)*15
 t_middle = np.ones(inv_dx-1)*40
@@ -186,7 +186,7 @@ for _ in xrange(1,10):
     #Update r_small_left with help from x_middle
     gamma_right = np.zeros(inv_dx-1)
     for i in xrange(gamma_right.size):
-        gamma_right[i] = gamma(x_right_old[i], temp_x[:inv_dx-1,-1][i])
+        gamma_right[i] = gamma(temp_x[:inv_dx-1,-1][i],x_right_old[i]) # think parameters should be switched like this
     b_right = make_B_vector(((2/inv_dx)*gamma_right),t_small, r_small_right,b_small)
     x_right = np.linalg.solve(a_right,-b_right)
 
