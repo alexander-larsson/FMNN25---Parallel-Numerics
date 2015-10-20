@@ -52,7 +52,7 @@ def make_A_matrix_big_room(size):
     return A
 
 
-def make_B_vector_big_room(left,top,right,bottom):
+def make_B_vector(left,top,right,bottom):
     """
     Parameters:
     4 vectors corresponding to the elements on either side of the matrix.
@@ -95,6 +95,18 @@ def make_B_vector_big_room(left,top,right,bottom):
 
     return b
 
+def update_B_vector_big_room(b,interface_points_left,interface_points_rigth):
+
+    ##  Insert the calculated points in b
+
+    return b
+
+def update_B_vector_small_room(b,interface_side,guess):
+    """
+    Parameters:
+    b: the vector created by running _make_B_matrix_
+    neumann_side: the string "L" or "R" to specify where the interface is
+    """
 
 
 
