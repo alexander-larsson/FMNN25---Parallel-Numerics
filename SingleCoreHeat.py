@@ -226,7 +226,6 @@ plot_matrix_width = mid_w+left_w+right_w+2
 plot_matrix_height = mid_h+2
 plot_matrix = np.zeros((plot_matrix_height,plot_matrix_width))
 
-print plot_matrix.shape
 
 plot_matrix[-inv_dx:-1,1:inv_dx+1] = left
 plot_matrix[1:-1,inv_dx+1:2*inv_dx] = middle # tror jag kanske
@@ -242,3 +241,5 @@ plot_matrix[inv_dx,2*inv_dx:-1] = np.ones(inv_dx)*15
 
 np.set_printoptions(precision=2)
 print plot_matrix
+plt.imshow(plot_matrix)
+plt.show()
