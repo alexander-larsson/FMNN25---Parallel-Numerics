@@ -181,7 +181,7 @@ for _ in xrange(1,10):
         gamma_left[i] = gamma(x_left_old[i], temp_x[-(inv_dx-1):,0][i])
     b_left = make_B_vector(l_small_left,t_small,((2/inv_dx)*gamma_left),b_small)
     x_left = np.linalg.solve(a_left, -b_left)
-    #set interface_points_left with x_left 
+    #set interface_points_left with x_left
     #start with right room
     #Update r_small_left with help from x_middle
     gamma_right = np.zeros(inv_dx-1)
@@ -189,13 +189,13 @@ for _ in xrange(1,10):
         gamma_right[i] = gamma(x_right_old[i], temp_x[:inv_dx-1,-1][i])
     b_right = make_B_vector(l_small_right,t_small, ((2/inv_dx)*gamma_right),b_small)
     x_right = np.linalg.solve(a_right,-b_right)
-   
+
     #Update interface_points_right with x_right
     #Update x_right_old, x_left_old
-   
+
     interface_points_left = x_left.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
     interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
-    
+
     x_left_old = x_left.reshape(inv_dx-1,inv_dx)[:,1]
     x_right_old = x_right.reshape(inv_dx-1, inv_dx)[:,1]
 
@@ -212,7 +212,33 @@ for _ in xrange(1,10):
 #print(x_middle.reshape(inv_dx*2 - 1,inv_dx -1))
 #new_vec = np.ones([10,10])
 #imgplot = plt.imshow(x_middle.reshape(5,2))
-#print(b_middle)
 
+# Plotting
+middle = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
+left = x_left.reshape(inv_dx-1,inv_dx)
+right = x_right.reshape(inv_dx-1,inv_dx)
 
+mid_h,mid_w = middle.shape
+left_h,left_w = left.shape
+right_h,right_w = right.shape
 
+plot_matrix_width = mid_w+left_w+right_w+2
+plot_matrix_height = mid_h+2
+plot_matrix = np.zeros((plot_matrix_height,plot_matrix_width))
+
+print plot_matrix.shape
+
+plot_matrix[-inv_dx:-1,1:inv_dx+1] = left
+plot_matrix[1:-1,inv_dx+1:2*inv_dx] = middle # tror jag kanske
+plot_matrix[1:inv_dx,2*inv_dx:-1] = right
+plot_matrix[-1,1:2*inv_dx] = np.ones(2*inv_dx-1)*5
+plot_matrix[-inv_dx-1:,0] = np.ones(inv_dx+1)*40
+plot_matrix[-inv_dx-1,1:inv_dx+1] = np.ones(inv_dx)*15
+plot_matrix[:inv_dx,inv_dx] = np.ones(inv_dx)*15
+plot_matrix[0,inv_dx+1:-1] = np.ones(mid_w+right_w)*40
+plot_matrix[:inv_dx+1,-1] = np.ones(inv_dx+1)*40
+plot_matrix[inv_dx+1:,2*inv_dx] = np.ones(inv_dx)*15
+plot_matrix[inv_dx,2*inv_dx:-1] = np.ones(inv_dx)*15
+
+np.set_printoptions(precision=2)
+print plot_matrix
