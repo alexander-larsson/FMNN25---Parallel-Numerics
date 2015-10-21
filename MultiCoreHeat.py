@@ -122,7 +122,7 @@ if rank == 0:
     a = make_A_matrix_big_room((inv_dx*2 + 1,inv_dx + 1))
     b = make_B_vector(left,top,right,bottom)
     x_middle = np.linalg.solve(a,-b)
-    comm.Send(x_middle ,dest=1, tag=tags['x_middle'])
+    comm.send([x_middle,MPI.FLOAT] ,dest=1, tag=tags['x_middle'])
 # might as well work the right side
 
 
@@ -132,56 +132,77 @@ right   = np.ones(inv_dx-1)*40
 left = np.ones(inv_dx-1)*40
 
 if rank == 0:
+    # this one take the right sroom
+    print x_middle, rank
     for i in range(left.size):
         left[i] = x_middle[left.size*(i)]
+
     a = make_A_matrix_small_room(inv_dx +1, "R")
     b = make_B_vector(left,top,right,bottom)
     x = np.linalg.solve(a, -b)
     x_old = x.reshape(inv_dx-1,inv_dx)[:,1]
     interface_points_left = x.reshape(inv_dx-1, inv_dx)[:,0]
 elif rank == 1:
-    x_middle= None
-    comm.Recv(x_middle, source=0, tag=tags['x_middle'])
+    # this one take the left room
+    x_middle =  comm.recv(source=0, tag=tags['x_middle'])[0]
     for i in range(right.size):
-        right = x_middle[-right.size*(i+1)]
+        right[i] = x_middle[-right.size*(i+1)]
     right = right[::-1] #Reverse array
     a = make_A_matrix_small_room(inv_dx +1, "L")
     b = make_B_vector(left,top,right,bottom)
     x = np.linalg.solve(a, -b)
     x_old = x.reshape(inv_dx-1, inv_dx)[:,1]
     interface_points_right = x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
-    comm.Send(interface_points_right, dest=0, tag=1)
+    comm.send(interface_points_right, dest=0, tag=tags['interface_points_right'])
 
 elif rank > 1:
     print("Rank ", rank, " does nothing")
 
+
 #Done, iterate
-comm.Barrier()
-for _ in range(1,10):
+
+
+
+for i in range(1,11):
     #First the big room
+
     if rank == 0:
         # we have interface_points_left
-        comm.Recv(interface_points_right, source = 2, tag=tags['interface_points_right'])
+        print "big room iteration " , i , " rank ", rank
+        interface_points_right = comm.recv(source = 1, tag=tags['interface_points_right'])[0]
         right[:interface_points_left.size] = interface_points_left
         left[-interface_points_right.size:] = interface_points_right
         b = make_B_vector(left,top,right,bottom)
         x_middle = np.linalg.solve(a,-b)
-        comm.Send(x_middle, dest=1, tag=tags['x_middle'])
+        comm.send(x_middle, dest=1, tag=tags['x_middle'])
+        print "big room iteration " , i , " rank ", rank
 
-    gamma_v = np.zeros(inv_dx-1)
-    temp = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
-    for i in range(gamma.size):
-        gamma[i] = gamma(x_old[i], temp[-(inv_dx-1):,0][i])
-    if rank == 1: #left
-        b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)
-    elif rank == 0: #right
-        b = make_B_vector(((2/inv_dx)*gamma_v),top, right ,bottom)
+
+    if rank == 0: #right
+        print "right room iteration " , i , " rank ", rank
+	gamma = np.zeros(inv_dx-1)
+	temp = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
+        for i in range(gamma.size):
+            gamma[i] = gamma(x_old[i], temp[-(inv_dx-1):,0][i])
         b = make_B_vector(((2/inv_dx)*gamma_v),top, right, bottom)
-    x = np.linalg.solve(a, -b)
-    x.old = x.reshape(inv_dx-1,inv_dx)[:,1]
-    if rank == 1:
-        comm.send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
-    elif rank == 0:
+        x = np.linalg.solve(a, -b)
+        x.old = x.reshape(inv_dx-1,inv_dx)[:,1]
         interface_points_left = x.reshape(inv_dx-1, inv_dx)[:,0]
+        print "right room iteration " , i , " rank ", rank
+
+
+    if rank == 1: #left
+        print "left room iteration " , i , " rank ", rank
+        x_middle = comm.recv(source=0,tag=tags['x_middle'])[0]
+	gamma = np.zeros(inv_dx-1)
+	temp = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
+        for i in range(gamma.size):
+            gamma[i] = gamma(x_old[i], temp[-(inv_dx-1):,0][i])
+        b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)
+        x = np.linalg.solve(a, -b)
+        x.old = x.reshape(inv_dx-1,inv_dx)[:,1]
+        com.send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=tags['interface_points_right'])
+        print "left room iteration " , i , " rank ", rank
+
 if rank == 0:
     print(x)
