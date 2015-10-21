@@ -108,7 +108,7 @@ def gamma(u_l, u_r):
     return (u_l - u_r)/inv_dx*2
 
 #Inverted delta-x value
-inv_dx = 3
+inv_dx = 20
 
 #Initiliaze vectors,matrix and values for corresponding room down below
 
@@ -234,6 +234,7 @@ plot_matrix[inv_dx+1:,2*inv_dx] = np.ones(inv_dx)*15
 plot_matrix[inv_dx,2*inv_dx:-1] = np.ones(inv_dx)*15
 
 np.set_printoptions(precision=2)
+#np.set_printoptions(threshold=np.nan) # Uncomment to force print whole matrix
 print plot_matrix
 heatplot = plt.imshow(plot_matrix)
 heatplot.set_cmap('hot')
