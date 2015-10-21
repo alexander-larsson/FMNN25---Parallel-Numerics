@@ -105,7 +105,7 @@ def gamma(u_l, u_r):
     u_l: left point of the value to calculate the gamma in
     u_r: right point of the value to calculate the gamma in
     """
-    return (u_l - u_r)*inv_dx/2
+    return (u_l - u_r)/inv_dx*2
 
 #Inverted delta-x value
 inv_dx = 3
@@ -124,7 +124,7 @@ r_middle = np.ones(inv_dx*2-1)*15
 #Creates the A matrix for the middle room, creates the b vector and solves the system
 a_middle = make_A_matrix_big_room((inv_dx*2 + 1,inv_dx + 1))
 b_vector_middle = make_B_vector(l_middle,t_middle,r_middle,b_middle)
-x_middle = np.linalg.solve(a_middle,-b_vector_middle)
+x_middle = np.linalg.solve(a_middle,b_vector_middle)/inv_dx
 
 #Left room
 
@@ -142,7 +142,7 @@ r_small_left = r_small_left[::-1]
 #Creates the A matrix for the left room, creates the b vector and solves the system
 a_left = make_A_matrix_small_room(inv_dx +1, "L")
 b_left = make_B_vector(l_small_left,t_small,r_small_left,b_small)
-x_left = np.linalg.solve(a_left, -b_left)
+x_left = np.linalg.solve(a_left, -b_left)/inv_dx
 interface_points_left = x_left.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
 
 
@@ -158,7 +158,7 @@ for i in xrange(r_small_right.size):
 #Creates the A matrix for the right room, creates the b vector and solves the system
 a_right = make_A_matrix_small_room(inv_dx +1, "R")
 b_right = make_B_vector(l_small_right,t_small,r_small_right,b_small)
-x_right = np.linalg.solve(a_left, -b_left)
+x_right = np.linalg.solve(a_left, -b_right)/inv_dx
 interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
 
 #Saves the interfae points to x_left_old and x_right_old
@@ -174,7 +174,7 @@ for _ in xrange(1,10):
 
     #Create the b vector for the middle room and solve the system
     b_vector_middle = make_B_vector(l_middle,t_middle,r_middle,b_middle)
-    x_middle = np.linalg.solve(a_middle,-b_vector_middle)
+    x_middle = np.linalg.solve(a_middle,-b_vector_middle)/inv_dx
 
     #Left room
     gamma_left = np.zeros(inv_dx-1)
@@ -184,7 +184,7 @@ for _ in xrange(1,10):
 
     #Create the b vector for the left room and solve the system
     b_left = make_B_vector(l_small_left,t_small,((2/inv_dx)*gamma_left),b_small)
-    x_left = np.linalg.solve(a_left, -b_left)
+    x_left = np.linalg.solve(a_left, -b_left)/inv_dx
 
 
     #Right room
@@ -194,7 +194,7 @@ for _ in xrange(1,10):
 
     #Create the b vector for the right room and solve the system
     b_right = make_B_vector(((2/inv_dx)*gamma_right),t_small, r_small_right,b_small)
-    x_right = np.linalg.solve(a_right,-b_right)
+    x_right = np.linalg.solve(a_right,-b_right)/inv_dx
 
     #Update interface_points_right with x_right
     #Update x_right_old, x_left_old
