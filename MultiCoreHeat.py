@@ -112,6 +112,7 @@ rank = comm.Get_rank()
 
 inv_dx = 3
 #Intialize rooms
+tags={'x_middle':101, 'interface_points_left':1, 'interface_points_right':2}
 
 if rank == 0:
     left = np.ones(inv_dx*2-1)*15
@@ -121,36 +122,37 @@ if rank == 0:
     a = make_A_matrix_big_room((inv_dx*2 + 1,inv_dx + 1))
     b = make_B_vector(left,top,right,bottom)
     x_middle = np.linalg.solve(a,-b)
-    comm.Bcast(x_middle, root=0)
-if rank != 0:
-    top = np.ones(inv_dx)*15
-    bottom = np.ones(inv_dx)*15
-    right = np.ones(inv_dx-1)*40
-    left = np.ones(inv_dx-1)*40
-    if rank == 1:
-        for i in range(right.size):
-            right = x_middle[-right.size*(i+1)]
-        right = right[::-1] #Reverse array
-        a = make_A_matrix_small_room(inv_dx +1, "L")
-        b = make_B_vector(left,top,right,bottom)
-        x = np.linalg.solve(a, -b)
-        #interface_points_left = x_left.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
-        #Tag with zero for left
-        #SEND:
-        x_old = x.reshape(inv_dx-1, inv_dx)[:,1]
-        comm.Send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
-    elif rank == 2:
-        for i in range(left.size):
-            left[i] = x_middle[left.size*(i)]
-        a = make_A_matrix_small_room(inv_dx +1, "R")
-        b = make_B_vector(left,top,right,bottom)
-        x = np.linalg.solve(a, -b)
-        x_old = x.reshape(inv_dx-1,inv_dx)[:,1]
-        #Send the interface points
-        interface_points_left = x.reshape(inv_dx-1, inv_dx)[:,0]
-        print(interface_points_left)
-        comm.Send(interface_points_left, dest=0, tag=2)
-elif rank > 2:
+    comm.Send(x_middle ,dest=1, tag=tags['x_middle'])
+# might as well work the right side
+
+
+top = np.ones(inv_dx)*15
+bottom = np.ones(inv_dx)*15
+right   = np.ones(inv_dx-1)*40
+left = np.ones(inv_dx-1)*40
+
+if rank == 0:
+    for i in range(left.size):
+        left[i] = x_middle[left.size*(i)]
+    a = make_A_matrix_small_room(inv_dx +1, "R")
+    b = make_B_vector(left,top,right,bottom)
+    x = np.linalg.solve(a, -b)
+    x_old = x.reshape(inv_dx-1,inv_dx)[:,1]
+    interface_points_left = x.reshape(inv_dx-1, inv_dx)[:,0]
+elif rank == 1:
+    x_middle= None
+    comm.Recv(x_middle, source=0, tag=tags['x_middle'])
+    for i in range(right.size):
+        right = x_middle[-right.size*(i+1)]
+    right = right[::-1] #Reverse array
+    a = make_A_matrix_small_room(inv_dx +1, "L")
+    b = make_B_vector(left,top,right,bottom)
+    x = np.linalg.solve(a, -b)
+    x_old = x.reshape(inv_dx-1, inv_dx)[:,1]
+    interface_points_right = x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
+    comm.Send(interface_points_right, dest=0, tag=1)
+
+elif rank > 1:
     print("Rank ", rank, " does nothing")
 
 #Done, iterate
@@ -158,32 +160,28 @@ comm.Barrier()
 for _ in range(1,10):
     #First the big room
     if rank == 0:
-        interface_points_left = np.ones([1,2])
-        comm.Recv(interface_points_left, source = 1, tag=1)
-        comm.Recv(interface_points_right, source = 2, tag=2)
+        # we have interface_points_left
+        comm.Recv(interface_points_right, source = 2, tag=tags['interface_points_right'])
         right[:interface_points_left.size] = interface_points_left
         left[-interface_points_right.size:] = interface_points_right
         b = make_B_vector(left,top,right,bottom)
         x_middle = np.linalg.solve(a,-b)
-        comm.Bcast(x_middle, root=0)
-    comm.Barrier()
-    if rank != 0:
-        #Common stuff
-        gamma_v = np.zeros(inv_dx-1)
-        temp = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
-        for i in range(gamma.size):
-            gamma[i] = gamma(x_old[i], temp[-(inv_dx-1):,0][i])
-        if rank == 1: #left
-            b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)
-        elif rank == 2: #right
-            b = make_B_vector(((2/inv_dx)*gamma_v),top, right ,bottom)
-            b = make_B_vector(((2/inv_dx)*gamma_v),top, right, bottom)
-        x = np.linalg.solve(a, -b)
-        x.old = x.reshape(inv_dx-1,inv_dx)[:,1]
-        if rank == 1:
-            comm.send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
-        elif rank == 2:
-            comm.send(x.reshape(inv_dx-1,inv_dx)[:,0])
-            #Broadcast points
+        comm.Send(x_middle, dest=1, tag=tags['x_middle'])
+
+    gamma_v = np.zeros(inv_dx-1)
+    temp = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
+    for i in range(gamma.size):
+        gamma[i] = gamma(x_old[i], temp[-(inv_dx-1):,0][i])
+    if rank == 1: #left
+        b = make_B_vector(left,top,((2/inv_dx)*gamma_v),bottom)
+    elif rank == 0: #right
+        b = make_B_vector(((2/inv_dx)*gamma_v),top, right ,bottom)
+        b = make_B_vector(((2/inv_dx)*gamma_v),top, right, bottom)
+    x = np.linalg.solve(a, -b)
+    x.old = x.reshape(inv_dx-1,inv_dx)[:,1]
+    if rank == 1:
+        comm.send(x.reshape(inv_dx-1,inv_dx)[:,inv_dx-1], dest=0, tag=1)
+    elif rank == 0:
+        interface_points_left = x.reshape(inv_dx-1, inv_dx)[:,0]
 if rank == 0:
     print(x)
