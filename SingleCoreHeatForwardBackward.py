@@ -103,14 +103,14 @@ def make_B_vector(left,top,right,bottom):
 
     return b
 
-def gamma(u_border, u_inner, inv_dx):
+def gamma(u_left, u_right, inv_dx):
     """
     Caluclates the gamma value for two points
     Parameters:
-    u_border: the point at the interface
-    u_inner: the point next to the the interface point u_border
+    u_left: the left point
+    u_right: the right point
     """
-    return (u_inner - u_border)*inv_dx
+    return (u_right - u_left)*inv_dx
 
 inv_dx = 3
 
@@ -181,7 +181,7 @@ for _ in xrange(10):
     right_inner_points = x_mid.reshape((ib_rl,ib_tb))[:is_rl,-1]
     right_gammas = np.zeros(is_rl)
     for i in xrange(is_rl):
-        right_gammas[i] = gamma(right_border_points[i],right_inner_points[i],inv_dx)
+        right_gammas[i] = gamma(right_inner_points[i],right_border_points[i],inv_dx)
     # One gamma is negative (left), wrong???
 
     # Solve left room
@@ -191,7 +191,7 @@ for _ in xrange(10):
     l_mid[-is_rl:] = x_left.reshape((is_rl,is_tb))[:,-1]
 
     # Solve right room
-    b_right = make_B_vector(right_gammas,t_small,r_small_right,b_small)
+    b_right = make_B_vector(-right_gammas,t_small,r_small_right,b_small) # minus on gammas acording to formula
     x_right = np.linalg.solve(a_right, -b_right)
     # Update r_mid
     r_mid[:is_rl] = x_right.reshape((is_rl,is_tb))[:,0]
