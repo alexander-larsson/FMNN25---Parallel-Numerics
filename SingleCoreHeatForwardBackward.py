@@ -29,11 +29,11 @@ def make_A_matrix_small_room(size,side):
     for i in xrange(size-2):
         if side == "L":
             bi = (size - 1)*i
-            A[bi][bi+1] = 2
+            #A[bi][bi+1] = 2
             A[bi][bi] = -3
         elif side == "R":
             bi = (size - 2) + (size-1)*i
-            A[bi][bi-1] = 2
+            #A[bi][bi-1] = 2
             A[bi][bi] = -3
     return A
 
@@ -112,7 +112,7 @@ def gamma(u_left, u_right, dx):
     """
     return (u_right - u_left)/dx
 
-inv_dx = 5
+inv_dx = 20
 dx = 1/inv_dx
 omega = 0.8
 
