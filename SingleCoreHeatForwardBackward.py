@@ -30,10 +30,11 @@ def make_A_matrix_small_room(size,side):
         if side == "L":
             bi = (size - 1)*i
             A[bi][bi+1] = 2
+            A[bi][bi] = -3
         elif side == "R":
             bi = (size - 2) + (size-1)*i
             A[bi][bi-1] = 2
-
+            A[bi][bi] = -3
     return A
 
 def make_A_matrix_big_room(size):
@@ -111,136 +112,4 @@ def gamma(u_l, u_r):
     """
     return (u_l - u_r)/inv_dx*2
 
-#Inverted delta-x value
-inv_dx = 20
-
-#Initiliaze vectors,matrix and values for corresponding room down below
-
-#Middle room
-
-#Temperature vectors for the corresponding wall: left,top,bottom,right(Middle room)
-l_middle = np.ones(inv_dx*2-1)*15
-t_middle = np.ones(inv_dx-1)*40
-b_middle = np.ones(inv_dx-1)*5
-r_middle = np.ones(inv_dx*2-1)*15
-
-
-#Creates the A matrix for the middle room, creates the b vector and solves the system
-a_middle = make_A_matrix_big_room((inv_dx*2 + 1,inv_dx + 1))
-b_vector_middle = make_B_vector(l_middle,t_middle,r_middle,b_middle)
-x_middle = np.linalg.solve(a_middle,b_vector_middle)/inv_dx
-
-#Left room
-
-#Temperature vectors for the corresponding wall: left,top,bottom(Left room)
-l_small_left = np.ones(inv_dx-1)*40
-t_small = np.ones(inv_dx)*15
-b_small = np.ones(inv_dx)*15
-
-#Insert interface points in r_small_left
-r_small_left = np.ones(inv_dx-1)
-for i in xrange(r_small_left.size):
-    r_small_left[i] = x_middle[-r_small_left.size*(i+1)]
-r_small_left = r_small_left[::-1]
-
-#Creates the A matrix for the left room, creates the b vector and solves the system
-a_left = make_A_matrix_small_room(inv_dx +1, "L")
-b_left = make_B_vector(l_small_left,t_small,r_small_left,b_small)
-x_left = np.linalg.solve(a_left, -b_left)/inv_dx
-interface_points_left = x_left.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
-
-
-#Right room
-
-#Temperature vectors for the corresponding wall: left,right(Right room)
-r_small_right = np.ones(inv_dx-1)*40
-l_small_right = np.ones(inv_dx-1)
-
-for i in xrange(r_small_right.size):
-    l_small_right[i] = x_middle[l_small_right.size*(i)]
-
-#Creates the A matrix for the right room, creates the b vector and solves the system
-a_right = make_A_matrix_small_room(inv_dx +1, "R")
-b_right = make_B_vector(l_small_right,t_small,r_small_right,b_small)
-x_right = np.linalg.solve(a_left, -b_right)/inv_dx
-interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
-
-#Saves the interfae points to x_left_old and x_right_old
-x_left_old = x_left.reshape(inv_dx-1,inv_dx)[:,1]
-x_right_old = x_right.reshape(inv_dx-1, inv_dx)[:,1]
-
-#Iterates 10 times, start in middle room, then go left and then right and so on..
-for _ in xrange(1,10):
-
-    #Interface points
-    r_middle[:interface_points_left.size] = interface_points_left
-    l_middle[-interface_points_right.size:] = interface_points_right
-
-    #Create the b vector for the middle room and solve the system
-    b_vector_middle = make_B_vector(l_middle,t_middle,r_middle,b_middle)
-    x_middle = np.linalg.solve(a_middle,-b_vector_middle)/inv_dx
-
-    #Left room
-    gamma_left = np.zeros(inv_dx-1)
-    temp_x = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
-    for i in xrange(gamma_left.size):
-        gamma_left[i] = gamma(x_left_old[i], temp_x[-(inv_dx-1):,0][i])
-
-    #Create the b vector for the left room and solve the system
-    b_left = make_B_vector(l_small_left,t_small,((2/inv_dx)*gamma_left),b_small)
-    x_left = np.linalg.solve(a_left, -b_left)/inv_dx
-
-
-    #Right room
-    gamma_right = np.zeros(inv_dx-1)
-    for i in xrange(gamma_right.size):
-        gamma_right[i] = gamma(temp_x[:inv_dx-1,-1][i],x_right_old[i])
-
-    #Create the b vector for the right room and solve the system
-    b_right = make_B_vector(((2/inv_dx)*gamma_right),t_small, r_small_right,b_small)
-    x_right = np.linalg.solve(a_right,-b_right)/inv_dx
-
-    #Update interface_points_right with x_right
-    #Update x_right_old, x_left_old
-    interface_points_left = x_left.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
-    interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
-
-    #Saves the solutions x_left and x_right
-    x_left_old = x_left.reshape(inv_dx-1,inv_dx)[:,1]
-    x_right_old = x_right.reshape(inv_dx-1, inv_dx)[:,1]
-
-
-
-# Plotting
-middle = x_middle.reshape(inv_dx*2 -1,inv_dx-1)
-left = x_left.reshape(inv_dx-1,inv_dx)
-right = x_right.reshape(inv_dx-1,inv_dx)
-
-mid_h,mid_w = middle.shape
-left_h,left_w = left.shape
-right_h,right_w = right.shape
-
-plot_matrix_width = mid_w+left_w+right_w+2
-plot_matrix_height = mid_h+2
-plot_matrix = np.zeros((plot_matrix_height,plot_matrix_width))
-
-
-plot_matrix[-inv_dx:-1,1:inv_dx+1] = left
-plot_matrix[1:-1,inv_dx+1:2*inv_dx] = middle # tror jag kanske
-plot_matrix[1:inv_dx,2*inv_dx:-1] = right
-plot_matrix[-1,1:2*inv_dx] = np.ones(2*inv_dx-1)*5
-plot_matrix[-inv_dx-1:,0] = np.ones(inv_dx+1)*40
-plot_matrix[-inv_dx-1,1:inv_dx+1] = np.ones(inv_dx)*15
-plot_matrix[:inv_dx,inv_dx] = np.ones(inv_dx)*15
-plot_matrix[0,inv_dx+1:-1] = np.ones(mid_w+right_w)*40
-plot_matrix[:inv_dx+1,-1] = np.ones(inv_dx+1)*40
-plot_matrix[inv_dx+1:,2*inv_dx] = np.ones(inv_dx)*15
-plot_matrix[inv_dx,2*inv_dx:-1] = np.ones(inv_dx)*15
-
-np.set_printoptions(precision=2)
-#np.set_printoptions(threshold=np.nan) # Uncomment to force print whole matrix
-print plot_matrix
-heatplot = plt.imshow(plot_matrix)
-heatplot.set_cmap('hot')
-plt.colorbar()
-plt.show()
+print make_A_matrix_small_room(4,"L")
