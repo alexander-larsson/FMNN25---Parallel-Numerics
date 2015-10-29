@@ -113,6 +113,7 @@ def gamma(u_left, u_right, inv_dx):
     return (u_right - u_left)*inv_dx
 
 inv_dx = 3
+omega = 0.8
 
 #Temperatures for different kind of walls
 wallHeaterT = 40
@@ -164,12 +165,18 @@ r_small_right = np.ones(is_rl)*wallHeaterT
 #Creates the A matrix for the right room, creates the b vector and solves the system
 a_right = make_A_matrix_small_room(os_side, "L")
 
-#interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
 
-for _ in xrange(10):
+#interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
+np.set_printoptions(precision=2)
+
+for iteration in xrange(10):
     # Solve big room
     b_vector_mid = make_B_vector(l_mid,t_mid,r_mid,b_mid)
-    x_mid = np.linalg.solve(a_mid,-b_vector_mid)
+    new_x_mid = np.linalg.solve(a_mid,-b_vector_mid)
+    if iteration > 0 :
+        x_mid = omega*x_mid + (1-omega)*new_x_mid
+    else:
+        x_mid = new_x_mid
     # Calculate gammas for left small room
     left_border_points = l_mid[-is_rl:]
     left_inner_points = x_mid.reshape((ib_rl,ib_tb))[-is_rl:,0]
@@ -186,13 +193,23 @@ for _ in xrange(10):
 
     # Solve left room
     b_left = make_B_vector(l_small_left,t_small,left_gammas,b_small)
-    x_left = np.linalg.solve(a_left, -b_left)
+    #print("b_left",b_left)
+    new_x_left = np.linalg.solve(a_left, -b_left)
+    if iteration > 0 :
+        x_left = omega*x_left +(1-omega)*new_x_left
+    else:
+        x_left = new_x_left
     # Update l_mid
     l_mid[-is_rl:] = x_left.reshape((is_rl,is_tb))[:,-1]
 
     # Solve right room
     b_right = make_B_vector(-right_gammas,t_small,r_small_right,b_small) # minus on gammas acording to formula
-    x_right = np.linalg.solve(a_right, -b_right)
+    #print("b_right",b_right)
+    new_x_right = np.linalg.solve(a_right, -b_right)
+    if iteration > 0 :
+        x_right = omega*x_right +(1-omega)*new_x_right
+    else:
+        x_right = new_x_right
     # Update r_mid
     r_mid[:is_rl] = x_right.reshape((is_rl,is_tb))[:,0]
 
