@@ -103,13 +103,11 @@ def make_B_vector(left,top,right,bottom):
 
     return b
 
-def gamma(u_l, u_r):
+def gamma(u_border, u_inner, inv_dx):
     """
     Caluclates the gamma value for two points
     Parameters:
-    u_l: left point of the value to calculate the gamma in
-    u_r: right point of the value to calculate the gamma in
+    u_border: the point at the interface
+    u_inner: the point next to the the interface point u_border
     """
-    return (u_l - u_r)/inv_dx*2
-
-print make_A_matrix_small_room(4,"L")
+    return (u_inner - u_border)*inv_dx
