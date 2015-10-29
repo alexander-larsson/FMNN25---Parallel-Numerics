@@ -112,7 +112,7 @@ def gamma(u_left, u_right, dx):
     """
     return (u_right - u_left)/dx
 
-inv_dx = 4
+inv_dx = 5
 dx = 1/inv_dx
 omega = 0.8
 
@@ -183,13 +183,13 @@ for iteration in xrange(10):
     left_inner_points = x_mid.reshape((ib_rl,ib_tb))[-is_rl:,0]
     left_gammas = np.zeros(is_rl)
     for i in xrange(is_rl):
-        left_gammas[i] = gamma(left_border_points[i],left_inner_points[i],dx)
+        left_gammas[i] = dx*gamma(left_border_points[i],left_inner_points[i],dx)
     # Calculate gammas for right small room
     right_border_points = r_mid[:is_rl]
     right_inner_points = x_mid.reshape((ib_rl,ib_tb))[:is_rl,-1]
     right_gammas = np.zeros(is_rl)
     for i in xrange(is_rl):
-        right_gammas[i] = gamma(right_inner_points[i],right_border_points[i],dx)
+        right_gammas[i] = dx*gamma(right_inner_points[i],right_border_points[i],dx)
     # One gamma is negative (left), wrong???
 
     # Solve left room
