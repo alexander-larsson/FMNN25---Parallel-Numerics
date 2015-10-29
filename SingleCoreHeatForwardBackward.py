@@ -103,16 +103,17 @@ def make_B_vector(left,top,right,bottom):
 
     return b
 
-def gamma(u_left, u_right, inv_dx):
+def gamma(u_left, u_right, dx):
     """
     Caluclates the gamma value for two points
     Parameters:
     u_left: the left point
     u_right: the right point
     """
-    return (u_right - u_left)*inv_dx
+    return (u_right - u_left)/dx
 
-inv_dx = 3
+inv_dx = 4
+dx = 1/inv_dx
 omega = 0.8
 
 #Temperatures for different kind of walls
@@ -141,7 +142,7 @@ r_mid = np.ones(ib_rl)*wallNormalT
 
 
 #Creates the A matrix for the middle room
-a_mid = make_A_matrix_big_room((ob_rl,ob_tb))
+a_mid = make_A_matrix_big_room((ob_rl,ob_tb))/dx/dx
 
 #Left room
 
@@ -151,7 +152,7 @@ t_small = np.ones(is_tb)*wallNormalT # Also used in right room
 b_small = np.ones(is_tb)*wallNormalT # Also used in right room
 
 #Creates the A matrix for the left room
-a_left = make_A_matrix_small_room(os_side, "R")
+a_left = make_A_matrix_small_room(os_side, "R")/dx/dx
 #b_left = make_B_vector(l_small_left,t_small,r_small_left,b_small)
 #x_left = np.linalg.solve(a_left, -b_left)
 #interface_points_left = x_left.reshape(inv_dx-1,inv_dx)[:,inv_dx-1]
@@ -163,7 +164,7 @@ a_left = make_A_matrix_small_room(os_side, "R")
 r_small_right = np.ones(is_rl)*wallHeaterT
 
 #Creates the A matrix for the right room, creates the b vector and solves the system
-a_right = make_A_matrix_small_room(os_side, "L")
+a_right = make_A_matrix_small_room(os_side, "L")/dx/dx
 
 
 #interface_points_right = x_right.reshape(inv_dx-1,inv_dx)[:,0]
@@ -171,7 +172,7 @@ np.set_printoptions(precision=2)
 
 for iteration in xrange(10):
     # Solve big room
-    b_vector_mid = make_B_vector(l_mid,t_mid,r_mid,b_mid)
+    b_vector_mid = make_B_vector(l_mid,t_mid,r_mid,b_mid)/dx/dx
     new_x_mid = np.linalg.solve(a_mid,-b_vector_mid)
     if iteration > 0 :
         x_mid = omega*x_mid + (1-omega)*new_x_mid
@@ -182,17 +183,17 @@ for iteration in xrange(10):
     left_inner_points = x_mid.reshape((ib_rl,ib_tb))[-is_rl:,0]
     left_gammas = np.zeros(is_rl)
     for i in xrange(is_rl):
-        left_gammas[i] = gamma(left_border_points[i],left_inner_points[i],inv_dx)
+        left_gammas[i] = gamma(left_border_points[i],left_inner_points[i],dx)
     # Calculate gammas for right small room
     right_border_points = r_mid[:is_rl]
     right_inner_points = x_mid.reshape((ib_rl,ib_tb))[:is_rl,-1]
     right_gammas = np.zeros(is_rl)
     for i in xrange(is_rl):
-        right_gammas[i] = gamma(right_inner_points[i],right_border_points[i],inv_dx)
+        right_gammas[i] = gamma(right_inner_points[i],right_border_points[i],dx)
     # One gamma is negative (left), wrong???
 
     # Solve left room
-    b_left = make_B_vector(l_small_left,t_small,left_gammas,b_small)
+    b_left = make_B_vector(l_small_left,t_small,left_gammas,b_small)/dx/dx
     #print("b_left",b_left)
     new_x_left = np.linalg.solve(a_left, -b_left)
     if iteration > 0 :
@@ -203,7 +204,7 @@ for iteration in xrange(10):
     l_mid[-is_rl:] = x_left.reshape((is_rl,is_tb))[:,-1]
 
     # Solve right room
-    b_right = make_B_vector(-right_gammas,t_small,r_small_right,b_small) # minus on gammas acording to formula
+    b_right = make_B_vector(-right_gammas,t_small,r_small_right,b_small)/dx/dx # minus on gammas acording to formula
     #print("b_right",b_right)
     new_x_right = np.linalg.solve(a_right, -b_right)
     if iteration > 0 :
