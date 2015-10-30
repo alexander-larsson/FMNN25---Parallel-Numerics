@@ -206,11 +206,7 @@ res_left = x_left.reshape((is_rl,is_tb))
 res_mid = x_mid.reshape((ib_rl,ib_tb))
 res_right = x_right.reshape((is_rl,is_tb))
 
-#print res_left
-#print res_mid
-#print res_right
-
-# Plotting (fix this pile of shit code later)
+# Plotting
 
 mid_h,mid_w = res_mid.shape
 left_h,left_w = res_left.shape
@@ -222,16 +218,18 @@ plot_matrix = np.zeros((plot_matrix_height,plot_matrix_width))
 
 
 plot_matrix[-inv_dx:-1,1:inv_dx+1] = res_left
-plot_matrix[1:-1,inv_dx+1:2*inv_dx] = res_mid # tror jag kanske
+plot_matrix[1:-1,inv_dx+1:2*inv_dx] = res_mid
 plot_matrix[1:inv_dx,2*inv_dx:-1] = res_right
-plot_matrix[-1,1:2*inv_dx] = np.ones(2*inv_dx-1)*5
+plot_matrix[-1,1:inv_dx+1] = np.ones(inv_dx)*15
+plot_matrix[-1,inv_dx+1:2*inv_dx] = np.ones(inv_dx-1)*5
 plot_matrix[-inv_dx-1:,0] = np.ones(inv_dx+1)*40
 plot_matrix[-inv_dx-1,1:inv_dx+1] = np.ones(inv_dx)*15
 plot_matrix[:inv_dx,inv_dx] = np.ones(inv_dx)*15
-plot_matrix[0,inv_dx+1:-1] = np.ones(mid_w+right_w)*40
+plot_matrix[0,inv_dx+1:2*inv_dx] = np.ones(mid_w)*40
 plot_matrix[:inv_dx+1,-1] = np.ones(inv_dx+1)*40
 plot_matrix[inv_dx+1:,2*inv_dx] = np.ones(inv_dx)*15
 plot_matrix[inv_dx,2*inv_dx:-1] = np.ones(inv_dx)*15
+plot_matrix[0,2*inv_dx:-1] = np.ones(right_w)*15
 
 heatplot = plt.imshow(plot_matrix)
 heatplot.set_cmap('hot')
