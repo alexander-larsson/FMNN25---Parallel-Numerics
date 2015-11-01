@@ -120,7 +120,7 @@ omega = 0.8
 #Multicore bookkeeping
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-tags={'r_mid':0, 'right_gammas':1}
+tags={'r_mid':0, 'right_gammas':1, 'res_right':2}
 
 #Temperatures for different kind of walls
 wallHeaterT = 40
@@ -141,15 +141,14 @@ ob_rl = (inv_dx*2)+1 # outer matrix big room right left
 #Middle room
 
 #Temperature vectors for the corresponding wall: left,top,bottom,right(Middle room)
-if rank == 0:
-    l_mid = np.ones(ib_rl)*wallNormalT
-    t_mid = np.ones(ib_tb)*wallHeaterT
-    b_mid = np.ones(ib_tb)*wallWindowT
-    r_mid = np.ones(ib_rl)*wallNormalT
-    #Creates the A matrix for the middle room
-    a_mid = make_A_matrix_big_room((ob_rl,ob_tb))/dx/dx
-    
-    
+l_mid = np.ones(ib_rl)*wallNormalT
+t_mid = np.ones(ib_tb)*wallHeaterT
+b_mid = np.ones(ib_tb)*wallWindowT
+r_mid = np.ones(ib_rl)*wallNormalT
+#Creates the A matrix for the middle room
+a_mid = make_A_matrix_big_room((ob_rl,ob_tb))/dx/dx
+
+
 t_small = np.ones(is_tb)*wallNormalT # Used in both rooms
 b_small = np.ones(is_tb)*wallNormalT # Used in both rooms
 
@@ -160,15 +159,17 @@ if rank == 0:
     a_left = make_A_matrix_small_room(os_side, "R")/dx/dx
 
 elif rank == 1:
-    
+
     #Right room
     r_small_right = np.ones(is_rl)*wallHeaterT
     #Creates the A matrix for the right room, creates the b vector and solves the system
     a_right = make_A_matrix_small_room(os_side, "L")/dx/dx
-    
+
 #np.set_printoptions(precision=2) # Uncomment to limit displayed double precision
-for iteration in xrange(10):
+for iteration in xrange(20):
+    print "--------*--------\niteration:  " ,iteration
     if rank == 0:
+        print "room 1 iteration : ", iteration
         # Solve big room
         if iteration > 0:
             r_mid = comm.recv(source=1, tag=tags['r_mid'])[0]
@@ -192,7 +193,7 @@ for iteration in xrange(10):
         for i in xrange(is_rl):
             right_gammas[i] = gamma(right_inner_points[i],right_border_points[i],dx)
         comm.send([right_gammas,MPI.FLOAT] ,dest=1, tag=tags['right_gammas'])
-    if rank == 0:
+
         # Solve left room
         b_left = make_B_vector(l_small_left,t_small,dx*left_gammas,b_small)/dx/dx
         new_x_left = np.linalg.solve(a_left, -b_left)
@@ -202,7 +203,7 @@ for iteration in xrange(10):
             x_left = new_x_left
             l_mid[-is_rl:] = x_left.reshape((is_rl,is_tb))[:,-1]
 
-    elif rank == 1:
+    if rank == 1:
         # Solve right room
         right_gammas =  comm.recv(source=0, tag=tags['right_gammas'])[0]
         b_right = make_B_vector(-dx*right_gammas,t_small,r_small_right,b_small)/dx/dx # minus on gammas acording to formula
@@ -214,23 +215,26 @@ for iteration in xrange(10):
         # Update r_mid
         r_mid[:is_rl] = x_right.reshape((is_rl,is_tb))[:,0]
         comm.send([r_mid,MPI.FLOAT] ,dest=0, tag=tags['r_mid'])
-        
+
+if rank == 1:
+    res_right = x_right.reshape((is_rl,is_tb))
+    comm.send([res_right,MPI.FLOAT], dest=0, tag=tags['res_right'])
 if rank == 0:
     res_left = x_left.reshape((is_rl,is_tb))
     res_mid = x_mid.reshape((ib_rl,ib_tb))
-    res_right = x_right.reshape((is_rl,is_tb))
-    
+    res_right = comm.recv(source=1, tag = tags['res_right'])[0]
+
     # Plotting
-    
+
     mid_h,mid_w = res_mid.shape
     left_h,left_w = res_left.shape
     right_h,right_w = res_right.shape
-    
+
     plot_matrix_width = mid_w+left_w+right_w+2
     plot_matrix_height = mid_h+2
     plot_matrix = np.zeros((plot_matrix_height,plot_matrix_width))
-    
-    
+
+
     plot_matrix[-inv_dx:-1,1:inv_dx+1] = res_left
     plot_matrix[1:-1,inv_dx+1:2*inv_dx] = res_mid
     plot_matrix[1:inv_dx,2*inv_dx:-1] = res_right
@@ -244,7 +248,7 @@ if rank == 0:
     plot_matrix[inv_dx+1:,2*inv_dx] = np.ones(inv_dx)*15
     plot_matrix[inv_dx,2*inv_dx:-1] = np.ones(inv_dx)*15
     plot_matrix[0,2*inv_dx:-1] = np.ones(right_w)*15
-    
+
     heatplot = plt.imshow(plot_matrix)
     heatplot.set_cmap('hot')
     plt.colorbar()

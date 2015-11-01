@@ -205,6 +205,7 @@ for iteration in xrange(10):
 res_left = x_left.reshape((is_rl,is_tb))
 res_mid = x_mid.reshape((ib_rl,ib_tb))
 res_right = x_right.reshape((is_rl,is_tb))
+print res_right
 
 # Plotting
 
